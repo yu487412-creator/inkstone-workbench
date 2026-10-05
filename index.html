@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>书生·端砚 工作台</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F5F2EA">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{
+  --bg:#F5F2EA;
+  --bg2:#FBF9F4;
+  --card:#FFFFFF;
+  --ink:#1C1C1E;
+  --ink2:#5B5B60;
+  --ink3:#9A9AA0;
+  --line:#E9E4D8;
+  --accent:#2E6BE6;
+  --green:#25B36B;
+  --amber:#E7A33E;
+  --radius:18px;
+  --shadow:0 2px 10px rgba(60,50,30,.06);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:system-ui,-apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.6;
+  overflow:hidden;
+}
+/* 应用外壳：用 fixed 定位锁死视口高度，避免 dvh/flex 在部分 WebView 里高度塌陷 */
+#app{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  display:flex;flex-direction:column;
+  max-width:820px;margin:0 auto;
+  background:var(--bg);overflow:hidden;
+}
+/* ---------- top bar ---------- */
+.topbar{
+  background:var(--bg2);
+  border-bottom:1px solid var(--line);
+  padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+  display:flex;align-items:center;gap:10px;
+  position:relative;z-index:20;flex:0 0 auto;
+}
+.icon-btn{
+  width:36px;height:36px;border:none;background:transparent;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:10px;cursor:pointer;color:var(--ink);flex:0 0 auto;
+}
+.icon-btn:active{background:#EFEBE0}
+.brand{flex:1;display:flex;align-items:center;gap:8px;justify-content:center}
+.brand .logo{
+  width:30px;height:30px;border-radius:9px;
+  background:linear-gradient(145deg,#3A4A7A,#20294A);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:16px;flex:0 0 auto;
+  box-shadow:0 2px 6px rgba(40,50,90,.28);
+}
+.brand h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.5px;white-space:nowrap}
+.brand h1 span{color:var(--ink2);font-weight:400;font-size:13px;margin-left:2px}
+/* ---------- chat scroll area ---------- */
+.chat{flex:1 1 auto;overflow-y:auto;padding:16px 14px 8px;scroll-behavior:smooth}
+.chat::-webkit-scrollbar{width:0}
+/* agent tag */
+.agent-tag{
+  display:inline-flex;align-items:center;gap:7px;
+  background:#EFF3FB;border:1px solid #DCE6F8;color:#2E4C8A;
+  border-radius:999px;padding:4px 12px 4px 8px;
+  font-size:12.5px;font-weight:500;margin-bottom:14px;
+}
+.agent-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:0 0 auto}
+.agent-tag .sep{opacity:.35}
+/* messages */
+.msg{display:flex;gap:9px;margin-bottom:16px;align-items:flex-start}
+.msg .ava{
+  width:30px;height:30px;border-radius:9px;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;margin-top:2px;
+}
+.msg.user{flex-direction:row-reverse}
+.msg.user .ava{background:linear-gradient(145deg,#8C8C93,#5A5A60);color:#fff}
+.msg.ai .ava{background:linear-gradient(145deg,#3A4A7A,#20294A);color:#fff}
+.bubble{
+  max-width:82%;padding:11px 14px;border-radius:16px;
+  white-space:pre-wrap;word-break:break-word;
+}
+.msg.ai .bubble{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);border-top-left-radius:5px}
+.msg.user .bubble{background:#3A4A7A;color:#fff;border-top-right-radius:5px}
+.bubble code{
+  background:#F1EEE5;border-radius:5px;padding:1.5px 5px;font-size:13px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.msg.user .bubble code{background:rgba(255,255,255,.18)}
+.bubble pre{
+  background:#2A2E38;color:#E8ECF4;border-radius:10px;padding:11px 13px;
+  overflow-x:auto;font-size:13px;margin:9px 0;
+}
+.bubble pre code{background:transparent;padding:0;color:inherit}
+.thinking{display:inline-flex;gap:4px;align-items:center;color:var(--ink3);font-size:13px}
+.rthink{
+  border-left:3px solid #D8D2C2;padding:2px 0 2px 10px;margin-bottom:9px;
+  color:var(--ink3);font-size:13px;font-style:italic;white-space:pre-wrap;max-height:150px;overflow-y:auto;
+}
+.thinking i{
+  width:6px;height:6px;border-radius:50%;background:var(--ink3);display:inline-block;
+  animation:bl 1.2s infinite;
+}
+.thinking i:nth-child(2){animation-delay:.2s}
+.thinking i:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+/* ---------- input dock ---------- */
+.dock{
+  flex:0 0 auto;background:var(--bg2);border-top:1px solid var(--line);
+  padding:10px 12px calc(env(safe-area-inset-bottom) + 10px);
+}
+.model-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  background:#EEF1F6;border:1px solid #DDE3ED;border-radius:999px;
+  padding:5px 11px 5px 9px;font-size:12.5px;color:var(--ink2);
+  margin-bottom:9px;cursor:pointer;user-select:none;max-width:100%;
+}
+.model-chip .mdot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:0 0 auto}
+.model-chip b{color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.model-chip .car{opacity:.5;font-size:10px}
+.input-row{display:flex;align-items:flex-end;gap:8px}
+.add-btn{
+  width:38px;height:38px;border-radius:12px;border:1px solid var(--line);
+  background:var(--card);font-size:20px;color:var(--ink2);
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto;cursor:pointer;
+}
+.add-btn:active{background:#F1EEE5}
+.ibox{
+  flex:1;border:1px solid var(--line);border-radius:14px;background:var(--card);
+  padding:5px 11px 4px;display:flex;flex-direction:column;min-width:0;
+}
+.ibox:focus-within{border-color:#C9D4E8}
+textarea#prompt{
+  resize:none;border:none;background:transparent;padding:2px 0 4px;
+  font:inherit;color:var(--ink);max-height:110px;min-height:22px;line-height:1.5;outline:none;width:100%;
+}
+.send-btn{
+  width:40px;height:40px;border-radius:13px;border:none;flex:0 0 auto;
+  background:#3A4A7A;color:#fff;font-size:17px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.send-btn:disabled{background:#C6CBD6;cursor:not-allowed}
+.send-btn:active:not(:disabled){transform:scale(.94)}
+.mode-row{display:flex;gap:6px;padding-bottom:3px}
+.mode-pill{
+  font-size:11.5px;padding:2px 11px;border-radius:999px;
+  border:1px solid var(--line);background:transparent;color:var(--ink2);cursor:pointer;
+}
+.mode-pill.on{background:#EFF3FB;border-color:#C9D8F4;color:#2E4C8A;font-weight:600}
+</style>
+</head>
+<body>
+<style>
+/* ---------- sheets (bottom drawer) ---------- */
+.mask{
+  position:fixed;inset:0;background:rgba(20,18,12,.38);
+  opacity:0;pointer-events:none;transition:opacity .22s;z-index:50;
+}
+.mask.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;
+  background:var(--bg2);border-radius:22px 22px 0 0;
+  transform:translateY(102%);transition:transform .28s cubic-bezier(.32,.72,.35,1);
+  max-height:86dvh;display:flex;flex-direction:column;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.sheet.on{transform:translateY(0)}
+.sheet-head{display:flex;align-items:center;padding:16px 18px 8px;flex:0 0 auto}
+.sheet-head h2{font-size:16px;margin:0;flex:1;font-weight:600}
+.sheet-head .done{color:var(--accent);font-weight:600;font-size:15px;background:none;border:none;cursor:pointer;padding:4px 6px}
+.sheet-body{overflow-y:auto;padding:4px 14px 20px}
+.grabber{width:38px;height:4.5px;border-radius:99px;background:#DCD6C8;margin:8px auto 0}
+/* provider card in picker */
+.prov{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow)}
+.prov-head{display:flex;align-items:center;gap:10px;padding:13px 15px}
+.prov-head .pname{font-size:16px;font-weight:600;flex:1}
+.prov-head .edit{color:var(--accent);font-size:13px;background:none;border:none;cursor:pointer}
+.prov-head .chev{
+  width:26px;height:26px;border-radius:50%;background:#F1EEE5;border:none;
+  display:flex;align-items:center;justify-content:center;color:var(--ink2);
+  cursor:pointer;font-size:11px;transition:transform .2s;
+}
+.prov.collapsed .chev{transform:rotate(-90deg)}
+.prov-list{max-height:600px;overflow:hidden;transition:max-height .25s}
+.prov.collapsed .prov-list{max-height:0}
+.mrow{
+  display:flex;align-items:center;gap:12px;padding:12px 15px;
+  border-top:1px solid var(--line);cursor:pointer;
+}
+.mrow:active{background:#F7F5EF}
+.radio{
+  width:21px;height:21px;border-radius:50%;border:1.8px solid #C9C4B6;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;transition:.15s;
+}
+.mrow.sel .radio{border-color:var(--accent);background:var(--accent);border-width:0}
+.radio::after{content:"";width:8px;height:8px;border-radius:50%;background:#fff;opacity:0;transition:.15s}
+.mrow.sel .radio::after{opacity:1}
+.mrow .mdot{width:7px;height:7px;border-radius:50%;background:var(--green);flex:0 0 auto;margin-left:-6px}
+.mrow .minfo{flex:1;min-width:0}
+.mrow .mname{font-size:15px;font-weight:500;display:flex;align-items:center;gap:7px}
+.mrow .mtag{font-size:10.5px;background:#EEF1F6;color:var(--ink2);border-radius:5px;padding:1px 6px;font-weight:500}
+.mrow .mid{font-size:12px;color:var(--ink3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bolt{color:var(--accent);font-size:15px;flex:0 0 auto}
+.more-toggle{
+  display:flex;align-items:center;gap:6px;padding:11px 15px;color:var(--accent);
+  font-size:13.5px;border-top:1px solid var(--line);cursor:pointer;background:#FCFBF7;
+  border:none;width:100%;text-align:left;
+}
+.more-toggle .tri{font-size:10px;transition:transform .2s}
+.prov.open-more .more-toggle .tri{transform:rotate(180deg)}
+.extra{display:none}
+.prov.open-more .extra{display:block}
+/* settings form */
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;color:var(--ink2);margin-bottom:6px;font-weight:500}
+.field input{
+  width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 13px;
+  font:inherit;font-size:14px;background:var(--card);outline:none;color:var(--ink);
+}
+.field input:focus{border-color:#C9D4E8}
+.field .hint{font-size:12px;color:var(--ink3);margin-top:5px}
+.btn-primary{
+  width:100%;border:none;border-radius:13px;background:#3A4A7A;color:#fff;
+  font:inherit;font-size:15px;font-weight:600;padding:13px;cursor:pointer;margin-top:4px;
+}
+.btn-primary:active{transform:scale(.99)}
+.btn-ghost{
+  width:100%;border:1px solid var(--line);border-radius:13px;background:var(--card);
+  color:var(--ink2);font:inherit;font-size:14px;padding:11px;cursor:pointer;margin-top:9px;
+}
+.balance{
+  background:linear-gradient(135deg,#F3F1E9,#FBFAF6);border:1px solid var(--line);
+  border-radius:16px;padding:15px;margin-bottom:16px;
+}
+.balance .bt{font-size:13px;color:var(--ink2);display:flex;justify-content:space-between}
+.balance .bv{font-size:26px;font-weight:700;margin-top:6px;display:flex;align-items:center;gap:9px}
+.balance .bv .drop{width:22px;height:22px;border-radius:50% 50% 50% 0;background:#1C1C1E;transform:rotate(-45deg)}
+.balance .bs{font-size:12px;color:var(--ink3);margin-top:6px}
+/* spinner */
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:80px;transform:translate(-50%,20px);
+  background:#2A2A2E;color:#fff;font-size:13.5px;padding:9px 16px;border-radius:11px;
+  opacity:0;pointer-events:none;transition:.25s;z-index:999;max-width:78vw;text-align:center;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#16150F;--bg2:#1D1C15;--card:#232219;--ink:#F2EFE6;--ink2:#B4B0A3;--ink3:#7E7A6E;--line:#322F24;--shadow:0 2px 10px rgba(0,0,0,.35)}
+  .bubble code{background:#2E2C22}
+  .agent-tag{background:#21283A;border-color:#2C3A56;color:#9FB6E0}
+  .model-chip{background:#242A36;border-color:#2E3646;color:var(--ink2)}
+  .input-row textarea, .add-btn{background:var(--card)}
+  .more-toggle{background:#1A1912}
+  .balance{background:linear-gradient(135deg,#22211A,#1C1B14)}
+  .balance .bv .drop{background:#F2EFE6}
+  .prov-head .chev,.add-btn:active,.icon-btn:active{background:#2A2820}
+  .sheet,.topbar,.dock{background:var(--bg2)}
+  .btn-ghost{background:var(--card)}
+}
+</style>
+<div id="app">
+<!-- ============ TOP BAR ============ -->
+<div class="topbar">
+  <button class="icon-btn" id="menuBtn" title="菜单">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <div class="brand">
+    <div class="logo">砚</div>
+    <h1>书生·端砚<span>Intern InkStone</span></h1>
+  </div>
+  <button class="icon-btn" id="cfgBtn" title="设置">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+  </button>
+</div>
+
+<!-- ============ CHAT ============ -->
+<div class="chat" id="chat">
+  <div class="agent-tag"><span class="dot"></span>Intern Inkstone Agent<span class="sep">|</span><span id="agentModel">DeepSeek-V4-Flash</span></div>
+  <div id="messages"></div>
+</div>
+
+<!-- ============ DOCK ============ -->
+<div class="dock">
+  <div class="model-chip" id="modelChip">
+    <span class="mdot"></span>
+    <b id="chipName">DeepSeek-V4-Flash</b>
+    <span class="car">▼</span>
+  </div>
+  <div class="input-row">
+    <button class="add-btn" id="addBtn" title="更多">＋</button>
+    <div class="ibox">
+      <div class="mode-row">
+        <button class="mode-pill on" data-mode="fast">快速</button>
+        <button class="mode-pill" data-mode="deep">深度</button>
+      </div>
+      <textarea id="prompt" rows="1" placeholder="继续追问，或描述新的探索方向……"></textarea>
+    </div>
+    <button class="send-btn" id="sendBtn" title="发送">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </button>
+  </div>
+</div>
+
+</div><!-- /#app -->
+
+<!-- ============ MASK ============ -->
+<div class="mask" id="mask"></div>
+
+<!-- ============ MODEL PICKER SHEET ============ -->
+<div class="sheet" id="modelSheet">
+  <div class="grabber"></div>
+  <div class="sheet-head"><h2>选择模型</h2><button class="done" data-close>完成</button></div>
+  <div class="sheet-body">
+    <div class="field" style="margin-bottom:12px">
+      <input id="modelSearch" placeholder="🔍 搜索模型" autocomplete="off">
+    </div>
+    <div id="provArea"></div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS SHEET ============ -->
+<div class="sheet" id="cfgSheet">
+  <div class="grabber"></div>
+  <div class="sheet-head"><h2>API 设置 <span style="font-size:11px;color:var(--ink3);font-weight:400">v2.1</span></h2><button class="done" data-close>完成</button></div>
+  <div class="sheet-body">
+    <div class="balance">
+      <div class="bt"><span>墨点余额</span><span style="color:var(--accent)" id="balRefresh">刷新 ›</span></div>
+      <div class="bv"><span class="drop"></span><span id="balVal">--</span></div>
+      <div class="bs">1 墨点最多可抵扣 5,000,000 tokens（以 DeepSeek-V4-Flash 为例）</div>
+    </div>
+    <div class="field">
+      <label>API 地址（Base URL · OpenAI 协议）</label>
+      <input id="cfgBase" placeholder="https://discovery-api.intern-ai.org.cn/v1">
+    </div>
+    <div class="field">
+      <label>API Key</label>
+      <input id="cfgKey" type="password" placeholder="sk-...">
+      <div class="hint">仅保存在本机浏览器（localStorage），不会上传到任何服务器。</div>
+    </div>
+    <button class="btn-primary" id="cfgSave">保存</button>
+    <button class="btn-ghost" id="cfgClear">清空对话记录</button>
+    <button class="btn-ghost" id="cfgAbout">关于本工作台</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+/* ================= 数据 ================= */
+const PROVIDERS = [
+  { id:"inkstone", label:"InkStone", base:"https://discovery-api.intern-ai.org.cn/v1", models:[
+    {id:"deepseek-v4-flash-0731", name:"DeepSeek-V4-Flash", tag:"", ctx:"1M"},
+    {id:"deepseek-v4-flash-vision", name:"DeepSeek-V4-Flash-Vision", tag:"img", ctx:"1M"},
+    {id:"deepseek-v4-pro-0813", name:"DeepSeek-V4-Pro", tag:"", ctx:"1M"},
+    {id:"glm-5.3", name:"GLM-5.3", tag:"", ctx:"1M"},
+    {id:"kimi-k2.6", name:"Kimi-K2.6", tag:"", ctx:"262K"},
+    {id:"minimax-m3", name:"MiniMax-M3", tag:"", ctx:"1M"},
+    {id:"qwen3.8-27b", name:"Qwen3.8-27B", tag:"", ctx:"262K"},
+    {id:"intern-s2", name:"Intern-S2", tag:"img", ctx:"262K"},
+    {id:"Agents-A1", name:"Agents-A1", tag:"工具调用", ctx:"262K"},
+    {id:"Atria-Dawn-Preview", name:"Atria-Dawn-Preview", tag:"", ctx:"512K"}
+  ]},
+  { id:"deepseek", label:"deepseek", base:"https://api.deepseek.com/v1", models:[
+    {id:"deepseek-chat", name:"DeepSeek-V4.1-Flash", tag:"img", ctx:"128K"},
+    {id:"deepseek-reasoner", name:"DeepSeek-Reasoner", tag:"", ctx:"128K"}
+  ]},
+  { id:"xmimio", label:"Xmimio", base:"https://api.xiaomimimo.com/v1", models:[
+    {id:"mimo-v2.6-pro", name:"MiMo v2.6 Pro", tag:"", ctx:"256K"},
+    {id:"mimo-v2.6-flash", name:"MiMo v2.6 Flash", tag:"", ctx:"256K"}
+  ]},
+  { id:"agnes", label:"Agnes AI", base:"https://api.agnes-ai.cn/v1", models:[
+    {id:"agnes-3.0-flash", name:"agnes-3.0-flash", tag:"", ctx:"128K"}
+  ]},
+  { id:"shuren", label:"Shuren", base:"https://chat.intern-ai.org.cn/api/v1", models:[
+    {id:"intern-latest", name:"Intern-S2 (latest)", tag:"", ctx:"256K"},
+    {id:"intern-s1-mini", name:"Intern-S1-Mini", tag:"", ctx:"256K"},
+    {id:"internvl-latest", name:"InternVL3.5-latest", tag:"img", ctx:"256K"}
+  ]}
+];
+
+const LS = "inkstone_workbench_v1";
+/* 某些 WebView / 隐私模式下 localStorage 会抛异常，做安全兜底，避免整个脚本中断 */
+const Store = (() => {
+  let mem = {};
+  let ok = true;
+  try { const t="__t"; localStorage.setItem(t,"1"); localStorage.removeItem(t); }
+  catch(e){ ok = false; }
+  return {
+    get(k){ try { return ok ? localStorage.getItem(k) : (mem[k] ?? null); } catch(e){ return mem[k] ?? null; } },
+    set(k,v){ try { ok ? localStorage.setItem(k,v) : (mem[k]=v); } catch(e){ mem[k]=v; } },
+    del(k){ try { ok ? localStorage.removeItem(k) : delete mem[k]; } catch(e){ delete mem[k]; } },
+    available: ok
+  };
+})();
+
+let S;
+try { S = JSON.parse(Store.get(LS) || "{}") || {}; } catch(e){ S = {}; }
+S = Object.assign({ providerId:"inkstone", modelId:"deepseek-v4-flash-0731", keys:{}, history:[] }, S);
+if(!S.keys || typeof S.keys !== "object") S.keys = {};
+if(!Array.isArray(S.history)) S.history = [];
+const save = () => { try { Store.set(LS, JSON.stringify(S)); } catch(e){} };
+
+const $ = s => document.querySelector(s);
+const chatEl = $("#chat"), msgsEl = $("#messages");
+let sending = false;
+
+/* ================= 工具 ================= */
+function curProv(){ return PROVIDERS.find(p=>p.id===S.providerId) || PROVIDERS[0]; }
+function curModel(){ return curProv().models.find(m=>m.id===S.modelId) || curProv().models[0]; }
+function toast(t){ const e=$("#toast"); e.textContent=t; e.classList.add("on"); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove("on"),2200); }
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function md(s){
+  let t = esc(s);
+  t = t.replace(/```(\w*)\n?([\s\S]*?)```/g,(m,lang,code)=>`<pre><code>${code.replace(/\n$/,"")}</code></pre>`);
+  t = t.replace(/`([^`\n]+)`/g,"<code>$1</code>");
+  t = t.replace(/\*\*([^*\n]+)\*\*/g,"<strong>$1</strong>");
+  return t;
+}
+
+/* ================= 渲染 ================= */
+function bubble(html, cls){ return `<div class="bubble">${html}</div>`; }
+
+function renderAll(){
+  msgsEl.innerHTML = S.history.map((m,i)=>{
+    const isUser = m.role==="user";
+    return `<div class="msg ${isUser?"user":"ai"}">
+      <div class="ava">${isUser?"我":"砚"}</div>
+      ${bubble(isUser?esc(m.content):md(m.content))}
+    </div>`;
+  }).join("");
+  scrollDown();
+}
+function scrollDown(){ requestAnimationFrame(()=>{ chatEl.scrollTop = chatEl.scrollHeight; }); }
+
+function updateChip(){
+  $("#chipName").textContent = curModel().name;
+  $("#agentModel").textContent = curModel().name;
+}
+
+/* ================= 聊天 ================= */
+async function send(){
+  const ta = $("#prompt");
+  const text = ta.value.trim();
+  if(!text || sending) return;
+  const key = S.keys[S.providerId] || "";
+  if(!key){ toast("请先在「设置」里填 API Key"); openCfg(); return; }
+
+  sending = true; $("#sendBtn").disabled = true;
+  ta.value = ""; ta.style.height="auto";
+
+  S.history.push({role:"user", content:text});
+  renderAll();
+  const waitId = "w"+Date.now();
+  msgsEl.insertAdjacentHTML("beforeend",
+    `<div class="msg ai" id="${waitId}"><div class="ava">砚</div>
+     <div class="bubble"><span class="thinking"><i></i><i></i><i></i> 思考中</span></div></div>`);
+  scrollDown();
+
+  const body = {
+    model: curModel().id,
+    messages: S.history.map(m=>({role:m.role, content:m.content})),
+    stream: true
+  };
+  let acc = "", think = "", node = null;
+  try{
+    const res = await fetch(curProv().base + "/chat/completions", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+key },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok){
+      const txt = await res.text();
+      throw new Error(res.status+" "+txt.slice(0,300));
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    const wait = document.getElementById(waitId);
+    const bub = wait.querySelector(".bubble");
+    node = bub;
+    const paint = () => {
+      let html = "";
+      if(think) html += `<div class="rthink">💭 ${md(think)}</div>`;
+      if(acc) html += md(acc);
+      if(!html) html = `<span class="thinking"><i></i><i></i><i></i> 思考中</span>`;
+      node.innerHTML = html;
+      scrollDown();
+    };
+    while(true){
+      const {done, value} = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, {stream:true});
+      const lines = buf.split("\n");
+      buf = lines.pop();
+      for(const ln of lines){
+        const s = ln.trim();
+        if(!s.startsWith("data:")) continue;
+        const p = s.slice(5).trim();
+        if(p === "[DONE]") continue;
+        try{
+          const j = JSON.parse(p);
+          const d = j.choices?.[0]?.delta || {};
+          let dirty = false;
+          if(d.reasoning_content){ think += d.reasoning_content; dirty = true; }
+          if(d.content){ acc += d.content; dirty = true; }
+          if(dirty) paint();
+        }catch(e){}
+      }
+    }
+    if(!acc){ acc = think ? "（推理完成，未返回正文）" : "（模型返回为空）"; }
+    paint();
+    S.history.push({role:"assistant", content:acc});
+  }catch(err){
+    const wait = document.getElementById(waitId);
+    if(wait) wait.remove();
+    toast("请求失败：" + err.message.slice(0,80));
+    S.history.push({role:"assistant", content:"⚠️ 请求失败：" + err.message});
+  }finally{
+    sending = false; $("#sendBtn").disabled = false; save(); renderAll();
+  }
+}
+
+/* ================= 模型选择器 ================= */
+function renderProviders(filter){
+  const q = (filter||"").toLowerCase();
+  const html = PROVIDERS.map(p=>{
+    const ms = p.models.filter(m=> !q || m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || p.label.toLowerCase().includes(q));
+    if(!ms.length) return "";
+    const head = ms.slice(0,1), rest = ms.slice(1);
+    const row = m => {
+      const sel = (S.providerId===p.id && S.modelId===m.id);
+      return `<div class="mrow ${sel?"sel":""}" data-p="${p.id}" data-m="${m.id}">
+        <span class="radio"></span><span class="mdot"></span>
+        <div class="minfo"><div class="mname">${esc(m.name)}${m.tag?`<span class="mtag">${m.tag}</span>`:""}</div>
+        <div class="mid">${esc(m.id)}</div></div>
+        <span class="bolt">⚡</span></div>`;
+    };
+    const restHtml = rest.map(m=>`<div class="extra">${row(m)}</div>`).join("");
+    return `<div class="prov ${rest.length?"":"no-more"}" data-prov="${p.id}">
+      <div class="prov-head"><span class="pname">${esc(p.label)}</span>
+        <button class="edit">编辑</button>
+        ${rest.length?`<button class="chev">▾</button>`:`<button class="chev" style="opacity:0">▾</button>`}
+      </div>
+      <div class="prov-list">${head.map(row).join("")}${restHtml}</div>
+      ${rest.length?`<button class="more-toggle"><span class="tri">▾</span> 显示 ${rest.length} 个模型</button>`:""}
+    </div>`;
+  }).join("");
+  $("#provArea").innerHTML = html || `<div style="text-align:center;color:var(--ink3);padding:30px">没有匹配的模型</div>`;
+}
+
+/* ================= 弹层 ================= */
+function openSheet(id){
+  $("#mask").classList.add("on");
+  const el = $(id); el.classList.add("on");
+  // 直接用内联样式驱动开合：部分 WebView 不执行 transform 过渡，
+  // 若只靠 .on 类，弹层可能停在屏外或被写死的内联位移卡住（导致关不掉）。
+  el.style.webkitTransform = el.style.transform = "translateY(0)";
+  el.style.top = "auto";
+  el.style.bottom = "0";
+  el.style.maxHeight = Math.floor(window.innerHeight * 0.86) + "px";
+  el.style.overflow = "hidden";
+}
+function closeSheets(){
+  $("#mask").classList.remove("on");
+  document.querySelectorAll(".sheet").forEach(s=>{
+    s.classList.remove("on");
+    // 必须清掉/覆盖内联位移，否则优先级高于 .sheet 的 translateY(102%)，弹层永远关不掉
+    s.style.webkitTransform = s.style.transform = "translateY(104%)";
+  });
+}
+function openPicker(){ renderProviders(""); $("#modelSearch").value=""; openSheet("#modelSheet"); }
+function openCfg(){
+  $("#cfgBase").value = S.keys.__customBase || curProv().base;
+  $("#cfgKey").value = S.keys[S.providerId] || "";
+  $("#balVal").textContent = "--";
+  openSheet("#cfgSheet");
+}
+
+/* ================= 事件 ================= */
+$("#prompt").addEventListener("input", e=>{
+  e.target.style.height = "auto";
+  e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+});
+$("#prompt").addEventListener("keydown", e=>{
+  if(e.key==="Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); send(); }
+});
+$("#sendBtn").addEventListener("click", send);
+$("#modelChip").addEventListener("click", openPicker);
+$("#cfgBtn").addEventListener("click", openCfg);
+$("#menuBtn").addEventListener("click", ()=>{ openCfg(); });
+$("#addBtn").addEventListener("click", ()=>{ openPicker(); });
+$("#mask").addEventListener("click", closeSheets);
+document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click", closeSheets));
+
+/* 下滑关闭：拖动把手(.grabber)或标题栏向下即可关掉弹层 */
+document.querySelectorAll(".sheet").forEach(sh=>{
+  const handles = [sh.querySelector(".grabber"), sh.querySelector(".sheet-head")].filter(Boolean);
+  let y0 = null;
+  const start = e => { y0 = e.touches ? e.touches[0].clientY : e.clientY; };
+  const end = e => {
+    if(y0 === null) return;
+    const y = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+    if(y - y0 > 55) closeSheets();
+    y0 = null;
+  };
+  handles.forEach(h=>{
+    h.style.touchAction = "none";
+    h.addEventListener("touchstart", start, {passive:true});
+    h.addEventListener("touchend", end);
+    h.addEventListener("mousedown", start);
+    h.addEventListener("mouseup", end);
+  });
+});
+document.addEventListener("keydown", e=>{ if(e.key === "Escape") closeSheets(); });
+document.querySelectorAll(".mode-pill").forEach(b=>b.addEventListener("click", ()=>{
+  document.querySelectorAll(".mode-pill").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");
+  toast(b.dataset.mode==="deep" ? "深度模式：将启用长思考（示例）" : "快速模式");
+}));
+
+$("#modelSearch").addEventListener("input", e=>renderProviders(e.target.value));
+
+$("#provArea").addEventListener("click", e=>{
+  const row = e.target.closest(".mrow");
+  const prov = e.target.closest(".prov");
+  if(row){
+    S.providerId = row.dataset.p; S.modelId = row.dataset.m;
+    save(); updateChip(); renderProviders($("#modelSearch").value);
+    toast("已切换到 " + curModel().name);
+    setTimeout(closeSheets, 220);
+    return;
+  }
+  if(e.target.closest(".more-toggle")){ prov.classList.toggle("open-more");
+    e.target.closest(".more-toggle").childNodes[1].textContent = prov.classList.contains("open-more") ? " 收起" : " 显示 " + prov.querySelectorAll(".extra").length + " 个模型";
+    return;
+  }
+  if(e.target.closest(".chev")){ prov.classList.toggle("collapsed"); return; }
+  if(e.target.closest(".edit")){ closeSheets(); setTimeout(openCfg, 200); return; }
+});
+
+$("#cfgSave").addEventListener("click", ()=>{
+  const base = $("#cfgBase").value.trim().replace(/\/+$/,"");
+  const key = $("#cfgKey").value.trim();
+  if(base) S.keys.__customBase = base;
+  if(key) S.keys[S.providerId] = key;
+  save(); closeSheets(); toast("已保存");
+});
+
+$("#balRefresh").addEventListener("click", async ()=>{
+  const key = S.keys[S.providerId] || $("#cfgKey").value.trim();
+  if(!key){ toast("请先填写 API Key"); return; }
+  $("#balVal").textContent = "···";
+  try{
+    const r = await fetch(($("#cfgBase").value.trim().replace(/\/+$/,"") || curProv().base) + "/models",
+      { headers:{ "Authorization":"Bearer "+key } });
+    if(r.ok){ $("#balVal").textContent = "已连通"; toast("Key 有效，余额请到端砚控制台查看"); }
+    else { $("#balVal").textContent = "--"; toast("鉴权失败：" + r.status); }
+  }catch(err){ $("#balVal").textContent = "--"; toast("网络错误：" + err.message.slice(0,60)); }
+});
+
+$("#cfgClear").addEventListener("click", ()=>{
+  if(confirm("确定清空本机对话记录？")){ S.history = []; save(); renderAll(); closeSheets(); toast("已清空"); }
+});
+$("#cfgAbout").addEventListener("click", ()=>{
+  alert("书生·端砚 工作台（单文件版）v2.1\n\n· 纯前端，双击即可打开，无需安装\n· 兼容任意 OpenAI 协议的 Base URL\n· 数据仅存于本机 localStorage\n\n默认指向端砚网关：\nhttps://discovery-api.intern-ai.org.cn/v1");
+});
+
+/* ================= 初始化 ================= */
+try{
+  updateChip();
+  if(!S.history.length){
+    S.history.push({role:"assistant", content:
+"👋 欢迎使用 **书生·端砚 工作台**　`v2.1`\n\n当前模型：**"+curModel().name+"**\n\n开始前请点右上角 ⚙️ 填入你的 API Key，即可直接对话。支持流式输出、多模型切换。\n\n> 提示：本页面为单文件纯前端应用，数据仅保存在本机。"});
+    save();
+  }
+  renderAll();
+}catch(err){
+  // 极端情况下也保证界面可用，并把错误暴露出来
+  document.getElementById("messages").innerHTML =
+    '<div class="msg ai"><div class="ava">砚</div><div class="bubble">⚠️ 初始化异常：' +
+    String(err && err.message || err).replace(/</g,"&lt;") + '</div></div>';
+}
+if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+</script>
+</body>
+</html>
