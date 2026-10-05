@@ -337,13 +337,18 @@ textarea#prompt{
   <div class="sheet-head"><h2>API 设置 <span style="font-size:11px;color:var(--ink3);font-weight:400">v2.1</span></h2><button class="done" data-close>完成</button></div>
   <div class="sheet-body">
     <div class="balance">
-      <div class="bt"><span>墨点余额</span><span style="color:var(--accent)" id="balRefresh">刷新 ›</span></div>
+      <div class="bt"><span>墨点余额</span><span style="color:var(--accent)" id="balRefresh">验证 Key ›</span></div>
       <div class="bv"><span class="drop"></span><span id="balVal">--</span></div>
-      <div class="bs">端砚不提供公开余额 API，请上控制台查看；「刷新」仅测试 Key 是否有效。</div>
+      <div class="bs">端砚不提供公开余额 API，余额请上控制台查看；「验证 Key」仅检查 Key 能否连通网关。</div>
     </div>
     <div class="field">
       <label>API 地址（Base URL · OpenAI 协议）</label>
       <input id="cfgBase" placeholder="https://discovery-api.intern-ai.org.cn/v1">
+    </div>
+    <div class="field">
+      <label>CORS 代理（可选）</label>
+      <input id="cfgProxy" placeholder="留空直接请求；填 https://corsproxy.io/? 可绕过拦截">
+      <div class="hint">若网关未开启 CORS（网页版报错 "Failed to fetch"），在此填一个代理地址，请求会经它转发。</div>
     </div>
     <div class="field">
       <label>API Key</label>
@@ -416,6 +421,13 @@ const $ = s => document.querySelector(s);
 const chatEl = $("#chat"), msgsEl = $("#messages");
 let sending = false;
 
+/* 拼接 API 请求路径，支持通过 CORS 代理绕过拦截 */
+function apiPath(path){
+  const proxy = $("#cfgProxy") && $("#cfgProxy").value.trim();
+  const base = ($("#cfgBase") && $("#cfgBase").value.trim().replace(/\/+$/,"")) || curProv().base;
+  return proxy ? (proxy.replace(/\/+$/,"") + "/" + encodeURIComponent(base + path)) : base + path;
+}
+
 /* ================= 工具 ================= */
 function curProv(){ return PROVIDERS.find(p=>p.id===S.providerId) || PROVIDERS[0]; }
 function curModel(){ return curProv().models.find(m=>m.id===S.modelId) || curProv().models[0]; }
@@ -476,7 +488,7 @@ async function send(){
   };
   let acc = "", think = "", node = null;
   try{
-    const res = await fetch(curProv().base + "/chat/completions", {
+    const res = await fetch(apiPath("/chat/completions"), {
       method:"POST",
       headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+key },
       body: JSON.stringify(body)
@@ -653,8 +665,10 @@ $("#provArea").addEventListener("click", e=>{
 
 $("#cfgSave").addEventListener("click", ()=>{
   const base = $("#cfgBase").value.trim().replace(/\/+$/,"");
+  const proxy = $("#cfgProxy").value.trim();
   const key = $("#cfgKey").value.trim();
   if(base) S.keys.__customBase = base;
+  if(proxy) S.keys.__proxy = proxy;
   if(key) S.keys[S.providerId] = key;
   save(); closeSheets(); toast("已保存");
 });
@@ -662,10 +676,9 @@ $("#cfgSave").addEventListener("click", ()=>{
 $("#balRefresh").addEventListener("click", async ()=>{
   const key = S.keys[S.providerId] || $("#cfgKey").value.trim();
   if(!key){ toast("请先填写 API Key"); return; }
-  const base = ($("#cfgBase").value.trim().replace(/\/+$/,"") || curProv().base);
   $("#balVal").textContent = "···";
   try{
-    const r = await fetch(base + "/models",
+    const r = await fetch(apiPath("/models"),
       { headers:{ "Authorization":"Bearer "+key } });
     if(r.ok){
       const data = await r.json();
@@ -688,7 +701,7 @@ $("#cfgClear").addEventListener("click", ()=>{
   if(confirm("确定清空本机对话记录？")){ S.history = []; save(); renderAll(); closeSheets(); toast("已清空"); }
 });
 $("#cfgAbout").addEventListener("click", ()=>{
-  alert("书生·端砚 工作台（单文件版）v2.1\n\n· 纯前端，双击即可打开，无需安装\n· 兼容任意 OpenAI 协议的 Base URL\n· 数据仅存于本机 localStorage\n\n默认指向端砚网关：\nhttps://discovery-api.intern-ai.org.cn/v1");
+  alert("书生·端砚 工作台（单文件版）v2.1\n\n· 纯前端，双击即可打开，无需安装\n· 兼容任意 OpenAI 协议的 Base URL\n· 数据仅存于本机 localStorage\n\n默认指向端砚网关：\nhttps://discovery-api.intern-ai.org.cn/v1\n\n⚠️ 若网关未开启 CORS（网页版报 \"Failed to fetch\"），请在设置的「CORS 代理」栏填入一个代理地址，如 https://corsproxy.io/?");
 });
 
 /* ================= 初始化 ================= */
