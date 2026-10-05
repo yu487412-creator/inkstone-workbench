@@ -1,16 +1,1 @@
-{
-  "name": "书生·端砚工作台",
-  "short_name": "端砚工作台",
-  "description": "书生·端砚 DSAPI 网关工作台：DeepSeek / GLM / Kimi / MiniMax 多模型对话",
-  "start_url": "./index.html",
-  "scope": "./",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#F5F2EA",
-  "theme_color": "#F5F2EA",
-  "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
-}
+{"manifest_version":1,"app_name":"书生·端砚工作台","version":"2.1","start_url":"./","display":"standalone","orientation":"portrait","theme_color":"#F5F2EA","background_color":"#F5F2EA","icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png"},{"src":"icon-512.png","sizes":"512x512","type":"image/png"},{"src":"icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}

@@ -339,7 +339,7 @@ textarea#prompt{
     <div class="balance">
       <div class="bt"><span>墨点余额</span><span style="color:var(--accent)" id="balRefresh">刷新 ›</span></div>
       <div class="bv"><span class="drop"></span><span id="balVal">--</span></div>
-      <div class="bs">1 墨点最多可抵扣 5,000,000 tokens（以 DeepSeek-V4-Flash 为例）</div>
+      <div class="bs">端砚不提供公开余额 API，请上控制台查看；「刷新」仅测试 Key 是否有效。</div>
     </div>
     <div class="field">
       <label>API 地址（Base URL · OpenAI 协议）</label>
@@ -662,13 +662,26 @@ $("#cfgSave").addEventListener("click", ()=>{
 $("#balRefresh").addEventListener("click", async ()=>{
   const key = S.keys[S.providerId] || $("#cfgKey").value.trim();
   if(!key){ toast("请先填写 API Key"); return; }
+  const base = ($("#cfgBase").value.trim().replace(/\/+$/,"") || curProv().base);
   $("#balVal").textContent = "···";
   try{
-    const r = await fetch(($("#cfgBase").value.trim().replace(/\/+$/,"") || curProv().base) + "/models",
+    const r = await fetch(base + "/models",
       { headers:{ "Authorization":"Bearer "+key } });
-    if(r.ok){ $("#balVal").textContent = "已连通"; toast("Key 有效，余额请到端砚控制台查看"); }
-    else { $("#balVal").textContent = "--"; toast("鉴权失败：" + r.status); }
-  }catch(err){ $("#balVal").textContent = "--"; toast("网络错误：" + err.message.slice(0,60)); }
+    if(r.ok){
+      const data = await r.json();
+      const total = (data.data||[]).length;
+      $("#balVal").textContent = "OK ("+total+" 模型)";
+      toast("Key 有效，可正常使用");
+    } else {
+      $("#balVal").textContent = "--";
+      let msg = "鉴权失败 "+r.status;
+      try{ const j=await r.json(); if(j.message) msg+=": "+j.message; }catch(e){}
+      toast(msg.slice(0,60));
+    }
+  }catch(err){
+    $("#balVal").textContent = "--";
+    toast("网络错误，请检查网络/代理/CORS");
+  }
 });
 
 $("#cfgClear").addEventListener("click", ()=>{
