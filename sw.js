@@ -1,5 +1,6 @@
 /* 端砚工作台 Service Worker：离线缓存 app shell */
-const CACHE = "inkstone-workbench-v1";
+// 每次改代码后，把 CACHE 名称里的版本号 +1，否则旧版 HTML 会被永久缓存
+const CACHE = "inkstone-workbench-v2";
 const ASSETS = [
   "./",
   "./index.html",
